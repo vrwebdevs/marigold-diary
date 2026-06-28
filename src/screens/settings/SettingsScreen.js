@@ -264,7 +264,91 @@ export default function SettingsScreen() {
           </View>
         </Pressable>
 
-        <SectionHeader label="tags" style={{ marginTop: spacing.sectionGap }} />
+        <SectionHeader label="appearance" style={{ marginTop: spacing.sectionGap }} />
+
+        <View style={{ flexDirection: 'row', gap: spacing.gap, marginBottom: spacing.gap }}>
+          {THEME_NAMES.map((name) => (
+            <Pressable key={name} onPress={() => pickTheme(name)} style={{ alignItems: 'center', flex: 1 }}>
+              <View
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 16,
+                  backgroundColor: THEMES[name].backdrop,
+                  borderWidth: themeName === name ? 2.5 : 1,
+                  borderColor: themeName === name ? colors.clayText : colors.hairline,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <View
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 8,
+                    backgroundColor: THEMES[name].paper,
+                    borderWidth: 1,
+                    borderColor: THEMES[name].hairline,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <View style={{ width: 9, height: 9, borderRadius: 999, backgroundColor: THEMES[name].clay }} />
+                </View>
+              </View>
+              <Text
+                style={{
+                  fontFamily: fontFamilies.sans,
+                  fontSize: 13,
+                  marginTop: 4,
+                  color: themeName === name ? colors.clayText : colors.softInk,
+                  textTransform: 'capitalize',
+                }}
+              >
+                {name}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Row>
+          <Text style={{ fontFamily: fontFamilies.sans, fontSize: 15, color: colors.ink, flex: 1 }}>
+            Text size
+          </Text>
+          {[
+            { scale: 0.9, label: 'small' },
+            { scale: 1, label: 'regular' },
+            { scale: 1.15, label: 'large' },
+          ].map((option) => (
+            <Pressable
+              key={option.label}
+              onPress={() => pickFontScale(option.scale)}
+              hitSlop={6}
+              style={{
+                borderRadius: radii.pill,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                marginLeft: 6,
+                backgroundColor: fontScale === option.scale ? colors.clayTint : 'transparent',
+                borderWidth: 1,
+                borderColor: fontScale === option.scale ? colors.clayText : colors.hairline,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: fontFamilies.sans,
+                  fontSize: 12,
+                  color: fontScale === option.scale ? colors.clayText : colors.midInk,
+                  textTransform: 'capitalize',
+                }}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          ))}
+        </Row>
+
+        <SectionHeader label="tags & mood manager" style={{ marginTop: spacing.sectionGap }} />
         <Pressable onPress={() => navigation.navigate('TagFilter')} hitSlop={8}>
           <Row>
             <Text style={{ fontFamily: fontFamilies.sans, fontSize: 15, color: colors.ink, flex: 1 }}>
@@ -273,8 +357,6 @@ export default function SettingsScreen() {
             <Text style={{ fontFamily: fontFamilies.serifMedium, fontSize: 20, color: colors.clayText }}>→</Text>
           </Row>
         </Pressable>
-
-        <SectionHeader label="emotions" style={{ marginTop: spacing.sectionGap }} />
         <Pressable onPress={() => navigation.navigate('MoodManager')} hitSlop={8}>
           <Row>
             <Text style={{ fontFamily: fontFamilies.sans, fontSize: 15, color: colors.ink, flex: 1 }}>
@@ -420,90 +502,6 @@ export default function SettingsScreen() {
             trackColor={{ false: colors.hairline, true: colors.clay }}
             thumbColor={colors.cream}
           />
-        </Row>
-
-        <SectionHeader label="appearance" style={{ marginTop: spacing.sectionGap }} />
-
-        <View style={{ flexDirection: 'row', gap: spacing.gap, marginBottom: spacing.gap }}>
-          {THEME_NAMES.map((name) => (
-            <Pressable key={name} onPress={() => pickTheme(name)} style={{ alignItems: 'center', flex: 1 }}>
-              <View
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 16,
-                  backgroundColor: THEMES[name].backdrop,
-                  borderWidth: themeName === name ? 2.5 : 1,
-                  borderColor: themeName === name ? colors.clayText : colors.hairline,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <View
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 8,
-                    backgroundColor: THEMES[name].paper,
-                    borderWidth: 1,
-                    borderColor: THEMES[name].hairline,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <View style={{ width: 9, height: 9, borderRadius: 999, backgroundColor: THEMES[name].clay }} />
-                </View>
-              </View>
-              <Text
-                style={{
-                  fontFamily: fontFamilies.sans,
-                  fontSize: 13,
-                  marginTop: 4,
-                  color: themeName === name ? colors.clayText : colors.softInk,
-                  textTransform: 'capitalize',
-                }}
-              >
-                {name}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Row>
-          <Text style={{ fontFamily: fontFamilies.sans, fontSize: 15, color: colors.ink, flex: 1 }}>
-            Text size
-          </Text>
-          {[
-            { scale: 0.9, label: 'small' },
-            { scale: 1, label: 'regular' },
-            { scale: 1.15, label: 'large' },
-          ].map((option) => (
-            <Pressable
-              key={option.label}
-              onPress={() => pickFontScale(option.scale)}
-              hitSlop={6}
-              style={{
-                borderRadius: radii.pill,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                marginLeft: 6,
-                backgroundColor: fontScale === option.scale ? colors.clayTint : 'transparent',
-                borderWidth: 1,
-                borderColor: fontScale === option.scale ? colors.clayText : colors.hairline,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: fontFamilies.sans,
-                  fontSize: 12,
-                  color: fontScale === option.scale ? colors.clayText : colors.midInk,
-                  textTransform: 'capitalize',
-                }}
-              >
-                {option.label}
-              </Text>
-            </Pressable>
-          ))}
         </Row>
 
         <SectionHeader label="privacy" style={{ marginTop: spacing.sectionGap }} />
