@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -23,6 +23,7 @@ import { normalizeTag, countWords, stripHtml } from '../../utils/textUtils';
 import { formatFullDate } from '../../utils/dateUtils';
 import { useWeather } from '../../hooks/useWeather';
 import { formatWeatherStamp } from '../../services/weather';
+import { resetActivity } from '../../utils/activityTracker';
 
 /**
  * Route params: { entryId } → edit mode; absent → new entry.
@@ -44,7 +45,6 @@ function WriteEditor({ existing }) {
   const insets = useSafeAreaInsets();
   const isEdit = !!existing;
 
-  const setDraft = useEntryStore((s) => s.setDraft);
   const resetDraft = useEntryStore((s) => s.resetDraft);
 
   // initial values captured once (draft store for new, entry row for edit)
@@ -64,7 +64,10 @@ function WriteEditor({ existing }) {
     isEdit ? !!existing.aiConsent : !!useEntryStore.getState().draft.aiConsent
   );
   const [tagInput, setTagInput] = useState('');
-  const [saving, setSaving] = useState(false);
+  // 'idle' | 'saving' | 'saved'
+  const [saveStatus, setSaveStatus] = useState('idle');
+  const savedIdRef = useRef(isEdit ? existing.id : null);
+  const debounceRef = useRef(null);
   const { data: weather } = useWeather();
   const weatherStamp = weather ? formatWeatherStamp(weather.temp, weather.code) : null;
 
@@ -85,13 +88,21 @@ function WriteEditor({ existing }) {
     }
   }, [isEdit, existingTags]);
 
-  // autosave new-entry draft
+  // real-time auto-save — debounced 1.2s after last change
   useEffect(() => {
-    if (isEdit) return;
-    const fields = { title, mood, tagNames, aiConsent };
-    if (liveHtml !== undefined) fields.content = liveHtml;
-    setDraft(fields);
-  }, [isEdit, title, mood, tagNames, aiConsent, liveHtml, setDraft]);
+    resetActivity(); // typing in the WebView editor doesn't bubble to App's PanResponder
+
+    const hasContent = title.trim().length > 0 || countWords(stripHtml(liveHtml || '')) > 0;
+    if (!hasContent) return;
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setSaveStatus('saving');
+
+    const snapshot = { title, html: liveHtml || '', mood, tagNames, aiConsent };
+    debounceRef.current = setTimeout(() => persistToDb(snapshot), 1200);
+
+    return () => clearTimeout(debounceRef.current);
+  }, [title, mood, tagNames, aiConsent, liveHtml]); // eslint-disable-line
 
   const createMutation = useCreateEntry();
   const updateMutation = useUpdateEntry();
@@ -111,41 +122,48 @@ function WriteEditor({ existing }) {
     }
   };
 
-  const canSave = !saving && (title.trim().length > 0 || wordCount > 0);
-
-  const onSave = async () => {
-    if (!canSave) return;
-    setSaving(true);
+  const persistToDb = async ({ title: t, html, mood: m, tagNames: tns, aiConsent: ac }) => {
     try {
-      const content = await editor.getHTML();
-      let id;
-      if (isEdit) {
+      const trimmedTitle = t.trim();
+      if (savedIdRef.current) {
         await updateMutation.mutateAsync({
-          id: existing.id,
-          fields: { title: title.trim(), content, mood, aiConsent: aiConsent ? 1 : 0 },
+          id: savedIdRef.current,
+          fields: { title: trimmedTitle, content: html, mood: m, aiConsent: ac ? 1 : 0 },
         });
-        id = existing.id;
+        await setTagsMutation.mutateAsync({ entryId: savedIdRef.current, tagNames: tns });
       } else {
         const created = await createMutation.mutateAsync({
-          title: title.trim(),
-          content,
-          mood,
+          title: trimmedTitle,
+          content: html,
+          mood: m,
           weatherTemp: weather?.temp ?? null,
           weatherCode: weather?.code ?? null,
-          aiConsent: aiConsent ? 1 : 0,
+          aiConsent: ac ? 1 : 0,
         });
-        id = created.id;
-      }
-      await setTagsMutation.mutateAsync({ entryId: id, tagNames });
-      if (!isEdit) {
+        savedIdRef.current = created.id;
+        await setTagsMutation.mutateAsync({ entryId: created.id, tagNames: tns });
         resetDraft();
       }
+      setSaveStatus('saved');
       haptics.success();
-      navigation.goBack();
     } catch (err) {
-      console.error('[WRITE] save failed:', err);
-      setSaving(false);
+      console.error('[WRITE] auto-save failed:', err);
+      setSaveStatus('idle');
     }
+  };
+
+  // flush any pending debounce immediately, then navigate away
+  const onDone = async () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    const content = await editor.getHTML();
+    const hasContent = title.trim().length > 0 || countWords(stripHtml(content)) > 0;
+    if (hasContent && saveStatus !== 'saved') {
+      await persistToDb({ title, html: content, mood, tagNames, aiConsent });
+    }
+    navigation.goBack();
   };
 
   return (
@@ -178,23 +196,17 @@ function WriteEditor({ existing }) {
           {weatherStamp ? `  ·  ${weatherStamp}` : ''}
         </Text>
         <Pressable
-          onPress={onSave}
-          disabled={!canSave}
+          onPress={onDone}
           hitSlop={8}
           style={{
-            backgroundColor: canSave ? colors.clay : colors.hairline,
+            backgroundColor: colors.clay,
             borderRadius: radii.pill,
             paddingHorizontal: 18,
             paddingVertical: 8,
           }}
         >
-          <Text
-            style={[
-              textStyles.labelBold,
-              { color: canSave ? colors.cream : colors.softInk },
-            ]}
-          >
-            {saving ? 'saving' : 'save'}
+          <Text style={[textStyles.labelBold, { color: colors.cream }]}>
+            done
           </Text>
         </Pressable>
       </View>
@@ -296,20 +308,22 @@ function WriteEditor({ existing }) {
         </Text>
       </Pressable>
 
-      {/* word count */}
-      <Text
-        style={[
-          textStyles.caption,
-          {
-            color: colors.softInk,
-            textAlign: 'right',
-            paddingHorizontal: spacing.screenX,
-            marginBottom: 6,
-          },
-        ]}
+      {/* word count + auto-save status */}
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          paddingHorizontal: spacing.screenX,
+          marginBottom: 6,
+        }}
       >
-        {wordCount} words
-      </Text>
+        <Text style={[textStyles.caption, { color: colors.softInk }]}>
+          {saveStatus === 'saving' ? 'saving…' : saveStatus === 'saved' ? 'saved' : ''}
+        </Text>
+        <Text style={[textStyles.caption, { color: colors.softInk }]}>
+          {wordCount} words
+        </Text>
+      </View>
 
       {/* editor */}
       <View

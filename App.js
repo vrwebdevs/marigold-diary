@@ -26,6 +26,7 @@ import { getDatabase, setActiveVault } from './src/db/client';
 import { useSettingsStore, useAuthStore, useSyncStore } from './src/stores';
 import { configureGoogle, restoreSession, googleAuthRecently } from './src/services/googleAuth';
 import { autoLockSuppressed } from './src/utils/autoLockGuard';
+import { resetActivity, getLastActivityAt } from './src/utils/activityTracker';
 import { syncNow } from './src/services/driveSync';
 import { clearSessionPin, clearKeyCache } from './src/services/crypto';
 import { colors, applyTheme, applyFontScale, applyMoods } from './src/theme';
@@ -76,7 +77,6 @@ async function runAutoSync() {
 let autoLocking = false;
 let backgroundedAt = null;
 const FOREGROUND_LOCK_MS = 5 * 60 * 1000;
-let lastActivityAt = Date.now();
 /** Lock + reset to the main (cover) vault when leaving the app, if enabled. */
 async function runAutoLock() {
   if (autoLocking) return;
@@ -188,7 +188,7 @@ export default function App() {
         runAutoSync();
         runAutoLock(); // lock the moment the app is backgrounded / phone screen locks
       } else if (state === 'active') {
-        lastActivityAt = Date.now();
+        resetActivity();
         backgroundedAt = null;
         runAutoSync();
       }
@@ -198,7 +198,7 @@ export default function App() {
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponderCapture: () => { lastActivityAt = Date.now(); return false; },
+      onStartShouldSetPanResponderCapture: () => { resetActivity(); return false; },
       onMoveShouldSetPanResponderCapture: () => false,
     })
   ).current;
@@ -207,7 +207,7 @@ export default function App() {
     const interval = setInterval(async () => {
       if (!useAuthStore.getState().isUnlocked) return;
       if (autoLockSuppressed() || googleAuthRecently()) return;
-      if (Date.now() - lastActivityAt < FOREGROUND_LOCK_MS) return;
+      if (Date.now() - getLastActivityAt() < FOREGROUND_LOCK_MS) return;
       await runAutoLock();
     }, 30_000);
     return () => clearInterval(interval);
