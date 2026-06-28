@@ -1,28 +1,80 @@
 {
   "expo": {
-    "name": "marigold-tmp",
-    "slug": "marigold-tmp",
-    "version": "1.0.0",
+    "name": "Marigold",
+    "slug": "marigold-diary",
+    "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon-1024.png",
+    "scheme": "marigold",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/marigold-flower-1024.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#EFE5D3"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.marigold.diary",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Unlock your diary with Face ID."
+      }
     },
     "android": {
+      "package": "com.marigold.diary",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "foregroundImage": "./assets/marigold-flower-1024.png",
+        "backgroundColor": "#A8532C"
+      },
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-sqlite",
+      "expo-secure-store",
+      "expo-font",
+      "expo-asset",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Marigold to use Face ID to unlock your diary."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#B26A47"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Marigold uses your location once per entry to stamp the weather."
+        }
+      ],
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": false,
+            "enableShrinkResourcesInReleaseBuilds": false
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2e895328-0772-4636-8ea9-cee83b6303b8"
+      }
+    },
+    "owner": "varunpandey2604"
   }
 }

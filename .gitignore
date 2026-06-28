@@ -30,7 +30,18 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+
+# logs
+*.log
+
+# native project folders
+android/
+ios/
 
 # typescript
 *.tsbuildinfo
+
+# Claude Code local settings
+.claude/
