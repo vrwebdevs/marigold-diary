@@ -75,6 +75,10 @@ function WriteEditor({ existing }) {
     autofocus: !isEdit,
     avoidIosKeyboard: true,
     initialContent: initialHtml,
+    editorCSS: `
+      body { color: ${colors.ink}; background-color: ${colors.paper}; }
+      * { caret-color: ${colors.clay}; }
+    `,
   });
   const liveHtml = useEditorContent(editor, { type: 'html' });
   const html = liveHtml !== undefined ? liveHtml : initialHtml;
