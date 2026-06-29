@@ -76,8 +76,9 @@ function WriteEditor({ existing }) {
     avoidIosKeyboard: true,
     initialContent: initialHtml,
     editorCSS: `
-      body { color: ${colors.ink}; background-color: ${colors.paper}; }
-      * { caret-color: ${colors.clay}; }
+      body { background-color: ${colors.paper} !important; }
+      .ProseMirror, .ProseMirror * { color: ${colors.ink} !important; caret-color: ${colors.clay} !important; }
+      p, span, div, li, h1, h2, h3, blockquote { color: ${colors.ink} !important; }
     `,
   });
   const liveHtml = useEditorContent(editor, { type: 'html' });
