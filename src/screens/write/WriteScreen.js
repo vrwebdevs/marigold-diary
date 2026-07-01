@@ -12,6 +12,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RichText, Toolbar, useEditorBridge, useEditorContent } from '@10play/tentap-editor';
 import { colors, textStyles, spacing, radii, fontFamilies } from '../../theme';
+import { useSettingsStore } from '../../stores';
 import { haptics } from '../../utils/haptics';
 import MoodSelector from '../../components/MoodSelector';
 import ScreenLoader from '../../components/ScreenLoader';
@@ -44,6 +45,7 @@ function WriteEditor({ existing }) {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const isEdit = !!existing;
+  const isDark = useSettingsStore((s) => s.theme) === 'dark';
 
   const resetDraft = useEntryStore((s) => s.resetDraft);
 
@@ -75,11 +77,10 @@ function WriteEditor({ existing }) {
     autofocus: !isEdit,
     avoidIosKeyboard: true,
     initialContent: initialHtml,
-    editorCSS: `
-      body { background-color: ${colors.paper} !important; }
-      .ProseMirror, .ProseMirror * { color: ${colors.ink} !important; caret-color: ${colors.clay} !important; }
-      p, span, div, li, h1, h2, h3, blockquote { color: ${colors.ink} !important; }
-    `,
+    editorCSS: isDark ? `
+      body { background-color: #2C241B !important; }
+      [contenteditable="true"], [contenteditable="true"] * { color: #EFE5D3 !important; caret-color: #C97A52 !important; }
+    ` : '',
   });
   const liveHtml = useEditorContent(editor, { type: 'html' });
   const html = liveHtml !== undefined ? liveHtml : initialHtml;
