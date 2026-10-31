@@ -18,6 +18,8 @@ import {
   generateWeeklyReflection,
   getCachedMonthlySummary,
   generateMonthlySummary,
+  getCachedTaskSummary,
+  generateTaskSummary,
 } from '../../services/aiDigest';
 
 function Card({ children, style }) {
@@ -198,6 +200,13 @@ export default function InsightsScreen() {
           getCached={getCachedMonthlySummary}
           generate={generateMonthlySummary}
           cta="Sum up my month →"
+        />
+
+        <SectionHeader label="task insights" style={{ marginTop: spacing.sectionGap }} />
+        <AIDigest
+          getCached={getCachedTaskSummary}
+          generate={generateTaskSummary}
+          cta="Summarise my tasks →"
         />
       </ScrollView>
     </View>

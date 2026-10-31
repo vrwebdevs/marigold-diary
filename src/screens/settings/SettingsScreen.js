@@ -365,6 +365,14 @@ export default function SettingsScreen() {
             <Text style={{ fontFamily: fontFamilies.serifMedium, fontSize: 20, color: colors.clayText }}>→</Text>
           </Row>
         </Pressable>
+        <Pressable onPress={() => navigation.navigate('ManageTasks')} hitSlop={8}>
+          <Row>
+            <Text style={{ fontFamily: fontFamilies.sans, fontSize: 15, color: colors.ink, flex: 1 }}>
+              Manage Tasks
+            </Text>
+            <Text style={{ fontFamily: fontFamilies.serifMedium, fontSize: 20, color: colors.clayText }}>→</Text>
+          </Row>
+        </Pressable>
 
         <SectionHeader label="ai" style={{ marginTop: spacing.sectionGap }} />
 

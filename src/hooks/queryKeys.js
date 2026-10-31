@@ -18,3 +18,11 @@ export const tagKeys = {
   all: ['tags'],
   forEntry: (entryId) => ['tags', 'entry', entryId],
 };
+
+export const taskKeys = {
+  names: ['tasks', 'names'],
+  persons: ['tasks', 'persons'],
+  logs: ['tasks', 'logs'],
+  logsForDay: (dateKey) => ['tasks', 'logs', dateKey],
+  allLogs: ['tasks', 'logs', 'all'],
+};

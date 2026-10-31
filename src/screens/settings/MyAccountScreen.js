@@ -233,7 +233,7 @@ export default function MyAccountScreen() {
                   : syncError
                   ? 'sync failed — tap to retry'
                   : lastSyncedAt
-                  ? `last synced ${lastSyncedAt.slice(0, 10)} ${lastSyncedAt.slice(11, 16)}`
+                  ? (() => { const d = new Date(lastSyncedAt); return `last synced ${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`; })()
                   : 'not synced yet'}
               </Text>
             </View>

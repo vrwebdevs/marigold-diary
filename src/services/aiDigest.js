@@ -2,6 +2,7 @@ import { askAI, isAIReady, getSharingMode } from './geminiAI';
 import { listShareableEntries } from '../db/queries/entries';
 import { getTagsForEntry } from '../db/queries/tags';
 import { getSetting, setSetting } from '../db/queries/settings';
+import { listAllTaskLogs } from '../db/queries/tasks';
 import { stripHtml } from '../utils/textUtils';
 import { toDateKey } from '../utils/dateUtils';
 
@@ -114,6 +115,46 @@ export async function generateMonthlySummary() {
     maxTokens: 400,
   });
   await setSetting('monthlySummary', { key: monthKey(), text });
+  return text;
+}
+
+// ── Task Summary ──────────────────────────────────────────────
+
+async function buildTaskContext() {
+  const logs = await listAllTaskLogs();
+  if (!logs.length) return 'No tasks logged yet.';
+  const byDay = {};
+  for (const log of logs) {
+    const day = toDateKey(new Date(log.loggedAt));
+    if (!byDay[day]) byDay[day] = [];
+    byDay[day].push(`${log.label} (${log.personName})`);
+  }
+  return Object.entries(byDay)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .slice(0, 14) // last 2 weeks max
+    .map(([day, tasks]) => `${day}: ${tasks.join(', ')}`)
+    .join('\n');
+}
+
+export async function getCachedTaskSummary() {
+  const cached = await getSetting('taskSummary', null);
+  return cached && cached.key === toDateKey() ? cached.text : null;
+}
+
+export async function generateTaskSummary() {
+  const access = await getAccess();
+  if (!access.ok) throw new Error(access.reason);
+  const context = await buildTaskContext();
+  const text = await askAI({
+    system:
+      'You are the gentle reflection voice of Marigold, a personal diary app. Given a log of ' +
+      'tasks with the person who did each, write a warm 2-to-4 sentence summary: who has been ' +
+      'doing what, any patterns of consistency or imbalance, and one encouraging observation. ' +
+      'Address the writer as "you". Never moralize, never use emoji. Plain text only.',
+    userText: `My task log for the past two weeks (most recent first):\n${context}`,
+    maxTokens: 300,
+  });
+  await setSetting('taskSummary', { key: toDateKey(), text });
   return text;
 }
 

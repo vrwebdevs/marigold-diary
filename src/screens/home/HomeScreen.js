@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, textStyles, spacing, radii, shadows, fontFamilies } from '../../theme';
 import EntryCardWithTags from '../../components/EntryCardWithTags';
 import FAB from '../../components/FAB';
+import TaskWidget from '../../components/TaskWidget';
 import HeroPromptCard from '../../components/HeroPromptCard';
 import MiniHeatmap from '../../components/MiniHeatmap';
 import SectionHeader from '../../components/SectionHeader';
@@ -80,6 +81,8 @@ export default function HomeScreen() {
           style={{ marginTop: spacing.sectionGap }}
           onWrite={() => navigation.navigate('Write')}
         />
+
+        <TaskWidget />
 
         <SectionHeader
           label="last 8 weeks"

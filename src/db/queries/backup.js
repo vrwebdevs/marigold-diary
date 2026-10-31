@@ -5,11 +5,15 @@ import { exportAiConfig } from '../../services/geminiAI';
 /** Full faithful snapshot of every diary table (for Drive backup). */
 export async function exportSnapshot() {
   const db = await getDatabase();
-  const [entries, tags, entryTags, settings] = await Promise.all([
+  const [entries, tags, entryTags, settings, moods, taskNames, persons, taskLogs] = await Promise.all([
     db.getAllAsync('SELECT * FROM entries'),
     db.getAllAsync('SELECT * FROM tags'),
     db.getAllAsync('SELECT * FROM entry_tags'),
     db.getAllAsync('SELECT key, value FROM settings'),
+    db.getAllAsync('SELECT * FROM moods'),
+    db.getAllAsync('SELECT * FROM task_names'),
+    db.getAllAsync('SELECT * FROM persons'),
+    db.getAllAsync('SELECT * FROM task_logs'),
   ]);
   // Prefer the persisted wrapped key (present whenever a PIN has been set); fall back to a live PIN.
   let vaultKey = await getStoredWrappedKey();
@@ -22,12 +26,16 @@ export async function exportSnapshot() {
     }
   }
   return {
-    schema: 3,
+    schema: 4,
     exportedAt: new Date().toISOString(),
     entries,
     tags,
     entryTags,
     settings,
+    moods,
+    taskNames,
+    persons,
+    taskLogs,
     vaultKey,
     keyId: await getVaultKeyId(),
     ai: await exportAiConfig(),
@@ -41,12 +49,25 @@ export async function importSnapshot(data) {
   const tags = data?.tags || [];
   const entryTags = data?.entryTags || [];
   const settings = data?.settings || [];
+  const moods = data?.moods || [];
+  const taskNames = data?.taskNames || [];
+  const persons = data?.persons || [];
+  const taskLogs = data?.taskLogs || [];
 
   await db.withExclusiveTransactionAsync(async (txn) => {
+    // Delete in FK-safe order (children first)
     await txn.runAsync('DELETE FROM entry_tags');
+    await txn.runAsync('DELETE FROM task_logs');
     await txn.runAsync('DELETE FROM entries');
     await txn.runAsync('DELETE FROM tags');
     await txn.runAsync('DELETE FROM settings');
+    await txn.runAsync('DELETE FROM persons');
+    await txn.runAsync('DELETE FROM task_names');
+    // Only clear moods if the snapshot actually includes them (schema >= 4).
+    // Older backups have no moods array — leave the migration-seeded defaults in place.
+    if (moods.length > 0) {
+      await txn.runAsync('DELETE FROM moods');
+    }
 
     for (const t of tags) {
       await txn.runAsync(
@@ -91,6 +112,30 @@ export async function importSnapshot(data) {
         $k: s.key,
         $v: s.value,
       });
+    }
+    for (const m of moods) {
+      await txn.runAsync(
+        'INSERT INTO moods (key, label, color, sortOrder, isDefault) VALUES ($k, $l, $c, $s, $d)',
+        { $k: m.key, $l: m.label, $c: m.color ?? null, $s: m.sortOrder ?? 0, $d: m.isDefault ?? 0 }
+      );
+    }
+    for (const tn of taskNames) {
+      await txn.runAsync(
+        'INSERT INTO task_names (id, name, sortOrder, createdAt) VALUES ($id, $name, $sort, $ts)',
+        { $id: tn.id, $name: tn.name, $sort: tn.sortOrder ?? 0, $ts: tn.createdAt }
+      );
+    }
+    for (const p of persons) {
+      await txn.runAsync(
+        'INSERT INTO persons (id, name, sortOrder, createdAt) VALUES ($id, $name, $sort, $ts)',
+        { $id: p.id, $name: p.name, $sort: p.sortOrder ?? 0, $ts: p.createdAt }
+      );
+    }
+    for (const tl of taskLogs) {
+      await txn.runAsync(
+        'INSERT INTO task_logs (id, label, personId, loggedAt, createdAt) VALUES ($id, $lb, $p, $la, $ts)',
+        { $id: tl.id, $lb: tl.label, $p: tl.personId, $la: tl.loggedAt, $ts: tl.createdAt }
+      );
     }
   });
 
@@ -144,13 +189,37 @@ export function mergeSnapshots(local, remote) {
   for (const s of local.settings || []) setByKey.set(s.key, s); // local wins
   const settings = [...setByKey.values()];
 
+  const moodByKey = new Map();
+  for (const m of remote.moods || []) moodByKey.set(m.key, m);
+  for (const m of local.moods || []) moodByKey.set(m.key, m); // local wins
+  const moods = [...moodByKey.values()];
+
+  const taskNameById = new Map();
+  for (const t of remote.taskNames || []) taskNameById.set(t.id, t);
+  for (const t of local.taskNames || []) taskNameById.set(t.id, t); // local wins
+  const taskNames = [...taskNameById.values()];
+
+  const personById = new Map();
+  for (const p of remote.persons || []) personById.set(p.id, p);
+  for (const p of local.persons || []) personById.set(p.id, p); // local wins
+  const persons = [...personById.values()];
+
+  const taskLogById = new Map();
+  for (const tl of remote.taskLogs || []) taskLogById.set(tl.id, tl);
+  for (const tl of local.taskLogs || []) taskLogById.set(tl.id, tl); // local wins
+  const taskLogs = [...taskLogById.values()];
+
   return {
-    schema: local.schema ?? 3,
+    schema: local.schema ?? 4,
     exportedAt: local.exportedAt,
     entries,
     tags,
     entryTags,
     settings,
+    moods,
+    taskNames,
+    persons,
+    taskLogs,
     vaultKey: local.vaultKey || remote.vaultKey || null,
     keyId: local.keyId || remote.keyId || null,
     ai: local.ai ?? remote.ai ?? null,

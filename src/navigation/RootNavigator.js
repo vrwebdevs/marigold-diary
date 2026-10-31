@@ -19,6 +19,8 @@ import ExportScreen from '../screens/export/ExportScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
 import MyAccountScreen from '../screens/settings/MyAccountScreen';
 import MoodManagerScreen from '../screens/settings/MoodManagerScreen';
+import ManageTasksScreen from '../screens/settings/ManageTasksScreen';
+import TaskHistoryScreen from '../screens/tasks/TaskHistoryScreen';
 import AboutScreen from '../screens/settings/AboutScreen';
 import HowItWorksScreen from '../screens/settings/HowItWorksScreen';
 
@@ -69,6 +71,8 @@ export default function RootNavigator() {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="MyAccount" component={MyAccountScreen} />
             <Stack.Screen name="MoodManager" component={MoodManagerScreen} />
+            <Stack.Screen name="ManageTasks" component={ManageTasksScreen} />
+            <Stack.Screen name="TaskHistory" component={TaskHistoryScreen} />
             <Stack.Screen name="About" component={AboutScreen} />
             <Stack.Screen name="HowItWorks" component={HowItWorksScreen} />
           </>
